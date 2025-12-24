@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Emoji Color Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a14;
+            --bg-secondary: #151522;
+            --bg-tertiary: #1f1f33;
+            --bg-quaternary: #2a2a44;
+            --text-primary: #f0f0ff;
+            --text-secondary: #b0b0d0;
+            --accent: #6c63ff;
+            --accent-light: #8a84ff;
+            --accent-dark: #524bc9;
+            --danger: #ff6b6b;
+            --success: #4ecdc4;
+            --warning: #ffd166;
+            --border-radius: 24px;
+            --border-radius-medium: 16px;
+            --border-radius-small: 12px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--success));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .emoji-icon {
+            font-size: 1.8rem;
+            vertical-align: middle;
+            margin: 0 5px;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 1200px) {
+            .app-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .section {
+            background-color: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .section:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--accent-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--bg-quaternary);
+        }
+
+        /* Upload Area */
+        .upload-section {
+            position: relative;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--accent);
+            border-radius: var(--border-radius);
+            padding: 40px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 20px;
+            position: relative;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-area:hover {
+            background-color: rgba(108, 99, 255, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .upload-area.active {
+            background-color: rgba(78, 205, 196, 0.1);
+            border-color: var(--success);
+        }
+
+        .upload-area i {
+            font-size: 4rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .upload-area p {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-area span {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        #imageUpload {
+            display: none;
+        }
+
+        .file-list {
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-medium);
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-list-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: var(--accent-light);
+        }
+
+        .file-list-title span {
+            background-color: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: var(--border-radius-small);
+            margin-bottom: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            transition: var(--transition);
+        }
+
+        .file-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .file-icon {
+            margin-right: 12px;
+            color: var(--accent);
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+
+        .file-remove {
+            color: var(--danger);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 10px;
+            transition: var(--transition);
+        }
+
+        .file-remove:hover {
+            transform: scale(1.2);
+        }
+
+        /* Preview Section */
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preview-counter {
+            background-color: var(--bg-quaternary);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .preview-display {
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-medium);
+            padding: 30px;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        #emojiCanvas {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: var(--border-radius-medium);
+            transition: transform 0.2s ease;
+            cursor: crosshair;
+        }
+
+        .zoom-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: var(--border-radius-small);
+            z-index: 10;
+        }
+
+        .zoom-btn {
+            background-color: var(--bg-quaternary);
+            border: none;
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1.2rem;
+        }
+
+        .zoom-btn:hover {
+            background-color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        .zoom-level {
+            color: var(--text-primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 60px;
+        }
+
+        .color-picker-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+
+        .magnifier {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 3px solid var(--accent);
+            border-radius: 50%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 15;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+
+        .magnifier-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .placeholder-text {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        /* Color Controls */
+        .color-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .color-controls {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .color-picker-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .color-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .color-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid var(--text-primary);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 60px;
+            border-radius: var(--border-radius-medium);
+            border: 3px solid var(--bg-quaternary);
+            cursor: pointer;
+            background-color: transparent;
+            flex: 1;
+        }
+
+        .color-hex {
+            background-color: var(--bg-quaternary);
+            padding: 12px 15px;
+            border-radius: var(--border-radius-small);
+            font-family: monospace;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .slider-container {
+            margin-top: 10px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: linear-gradient(to right, var(--bg-quaternary), var(--accent));
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            cursor: pointer;
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Additional Tools */
+        .tools-section {
+            grid-column: 1 / -1;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .tool-card {
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-medium);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            background-color: var(--bg-quaternary);
+            transform: translateY(-5px);
+        }
+
+        .tool-card.active {
+            background-color: rgba(108, 99, 255, 0.2);
+            border: 2px solid var(--accent);
+        }
+
+        .tool-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+
+        .tool-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .tool-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 18px 30px;
+            border-radius: var(--border-radius-medium);
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-light);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-quaternary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--accent);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: var(--bg-primary);
+            font-weight: 800;
+        }
+
+        .btn-success:hover {
+            background-color: #3db8af;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: var(--text-primary);
+        }
+
+        .btn-danger:hover {
+            background-color: #ff5252;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .batch-status {
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius-medium);
+            padding: 20px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .batch-status.active {
+            display: block;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            height: 20px;
+            background-color: var(--bg-quaternary);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .status-text {
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--bg-tertiary);
+            font-size: 0.9rem;
+        }
+
+        /* Modal for zoom view */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 2rem;
+            cursor: pointer;
+            z-index: 1001;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+            transform: scale(1.2);
+        }
+
+        #modalCanvas {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: var(--border-radius-medium);
+        }
+
+        .color-sampler {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            z-index: 1002;
+            display: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                min-width: 100%;
+            }
+            
+            .tools-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Advanced Emoji Editor <span class="emoji-icon">🎨✨</span></h1>
+            <p class="subtitle">Bulk upload, edit, and customize emojis with powerful color replacement tools, zoom preview, and batch processing</p>
+        </header>
+
+        <div class="app-container">
+            <!-- Upload Section -->
+            <section class="section upload-section">
+                <h2 class="section-title"><i class="fas fa-cloud-upload-alt"></i> Bulk Upload</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-file-upload"></i>
+                    <p>Drag & drop your emoji images here</p>
+                    <span>or click to browse multiple files (PNG, JPG, SVG)</span>
+                    <input type="file" id="imageUpload" accept="image/*" multiple>
+                </div>
+
+                <div class="file-list" id="fileList">
+                    <div class="file-list-title">
+                        <span>Uploaded Files</span>
+                        <div id="fileCount">0 files</div>
+                    </div>
+                    <div id="fileItems"></div>
+                </div>
+
+                <div class="batch-status" id="batchStatus">
+                    <div class="status-header">
+                        <span>Batch Processing</span>
+                        <span id="processedCount">0/0</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="status-text" id="statusText">Ready to process</div>
+                </div>
+            </section>
+
+            <!-- Preview Section -->
+            <section class="section preview-container">
+                <div class="preview-header">
+                    <h2 class="section-title"><i class="fas fa-eye"></i> Preview</h2>
+                    <div class="preview-nav">
+                        <button class="zoom-btn" id="prevBtn" title="Previous">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="preview-counter">
+                            <span id="currentIndex">1</span> / <span id="totalImages">0</span>
+                        </div>
+                        <button class="zoom-btn" id="nextBtn" title="Next">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="preview-display" id="previewDisplay">
+                    <div class="zoom-container">
+                        <button class="zoom-btn" id="zoomOutBtn" title="Zoom Out">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <div class="zoom-level" id="zoomLevel">100%</div>
+                        <button class="zoom-btn" id="zoomInBtn" title="Zoom In">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button class="zoom-btn" id="fullscreenBtn" title="Full Screen">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                    
+                    <canvas id="emojiCanvas"></canvas>
+                    <div id="magnifier" class="magnifier">
+                        <canvas class="magnifier-canvas" id="magnifierCanvas"></canvas>
+                    </div>
+                    <div id="colorPickerCursor" class="color-picker-cursor"></div>
+                    
+                    <p id="placeholder" class="placeholder-text">
+                        <i class="fas fa-upload" style="font-size: 3rem; margin-bottom: 20px; display: block;"></i>
+                        Upload emoji images to start editing
+                    </p>
+                </div>
+                
+                <div class="color-picker-wrapper" style="margin-top: 20px; justify-content: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="color-label">
+                            <div class="color-preview" id="selectedColorPreview" style="background-color: #00ff00"></div>
+                            <span>Selected Color:</span>
+                        </div>
+                        <div class="color-hex" id="selectedColorHex">#00FF00</div>
+                        <button class="btn-secondary" id="useAsTargetBtn" style="padding: 10px 20px;">
+                            <i class="fas fa-fill-drip"></i> Use as Target
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Color Controls -->
+            <section class="section">
+                <h2 class="section-title"><i class="fas fa-sliders-h"></i> Color Controls</h2>
+                
+                <div class="color-controls">
+                    <div class="color-picker-group">
+                        <div class="color-header">
+                            <div class="color-label">
+                                <div class="color-preview" id="targetColorPreview" style="background-color: #00ff00"></div>
+                                <span>Color to Replace</span>
+                            </div>
+                            <button class="btn-secondary" id="pickColorBtn" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-eyedropper"></i> Pick
+                            </button>
+                        </div>
+                        
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="targetColorPicker" value="#00ff00">
+                            <div class="color-hex" id="targetColorHex">#00FF00</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Tolerance:</span>
+                                <span id="toleranceValue">30%</span>
+                            </div>
+                            <input type="range" min="1" max="100" value="30" class="slider" id="toleranceSlider">
+                        </div>
+                    </div>
+
+                    <div class="color-picker-group">
+                        <div class="color-header">
+                            <div class="color-label">
+                                <div class="color-preview" id="replacementColorPreview" style="background-color: #ff6b6b"></div>
+                                <span>Replacement Color</span>
+                            </div>
+                            <button class="btn-secondary" id="randomColorBtn" style="padding: 8px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-random"></i> Random
+                            </button>
+                        </div>
+                        
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="replacementColorPicker" value="#ff6b6b">
+                            <div class="color-hex" id="replacementColorHex">#FF6B6B</div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Blend Strength:</span>
+                                <span id="blendValue">80%</span>
+                            </div>
+                            <input type="range" min="1" max="100" value="80" class="slider" id="blendSlider">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Additional Tools -->
+            <section class="section tools-section">
+                <h2 class="section-title"><i class="fas fa-tools"></i> Additional Tools</h2>
+                
+                <div class="tools-grid">
+                    <div class="tool-card" id="toolBrightness">
+                        <div class="tool-icon">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div class="tool-name">Brightness</div>
+                        <div class="tool-desc">Adjust image brightness</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolContrast">
+                        <div class="tool-icon">
+                            <i class="fas fa-adjust"></i>
+                        </div>
+                        <div class="tool-name">Contrast</div>
+                        <div class="tool-desc">Increase or decrease contrast</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolSaturation">
+                        <div class="tool-icon">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="tool-name">Saturation</div>
+                        <div class="tool-desc">Modify color intensity</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolHue">
+                        <div class="tool-icon">
+                            <i class="fas fa-rainbow"></i>
+                        </div>
+                        <div class="tool-name">Hue Rotate</div>
+                        <div class="tool-desc">Shift all colors</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolInvert">
+                        <div class="tool-icon">
+                            <i class="fas fa-inverse"></i>
+                        </div>
+                        <div class="tool-name">Invert Colors</div>
+                        <div class="tool-desc">Create negative effect</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolGrayscale">
+                        <div class="tool-icon">
+                            <i class="fas fa-cloud-moon"></i>
+                        </div>
+                        <div class="tool-name">Grayscale</div>
+                        <div class="tool-desc">Convert to black and white</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolBorder">
+                        <div class="tool-icon">
+                            <i class="fas fa-square-full"></i>
+                        </div>
+                        <div class="tool-name">Add Border</div>
+                        <div class="tool-desc">Add colored border</div>
+                    </div>
+                    
+                    <div class="tool-card" id="toolShadow">
+                        <div class="tool-icon">
+                            <i class="fas fa-cloud"></i>
+                        </div>
+                        <div class="tool-name">Drop Shadow</div>
+                        <div class="tool-desc">Add shadow effect</div>
+                    </div>
+                </div>
+                
+                <!-- Tool-specific controls (hidden by default) -->
+                <div id="toolControls" style="margin-top: 25px; display: none;">
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span id="toolLabel">Brightness:</span>
+                            <span id="toolValue">0%</span>
+                        </div>
+                        <input type="range" min="-100" max="100" value="0" class="slider" id="toolSlider">
+                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                            <button class="btn-secondary" id="applyToolBtn" style="padding: 10px 20px;">
+                                <i class="fas fa-check"></i> Apply to Current
+                            </button>
+                            <button class="btn-primary" id="applyToolAllBtn" style="padding: 10px 20px;">
+                                <i class="fas fa-layer-group"></i> Apply to All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="applyColorBtn">
+                <i class="fas fa-magic"></i> Apply to Current
+            </button>
+            <button class="btn btn-primary" id="applyAllBtn">
+                <i class="fas fa-layer-group"></i> Apply to All
+            </button>
+            <button class="btn btn-secondary" id="resetBtn">
+                <i class="fas fa-redo"></i> Reset Current
+            </button>
+            <button class="btn btn-danger" id="resetAllBtn">
+                <i class="fas fa-trash-alt"></i> Reset All
+            </button>
+            <button class="btn btn-success" id="downloadBtn">
+                <i class="fas fa-download"></i> Download (<span id="downloadCount">0</span>)
+            </button>
+        </div>
+
+        <!-- Zoom Modal -->
+        <div class="modal" id="zoomModal">
+            <div class="modal-content">
+                <button class="modal-close" id="modalClose">&times;</button>
+                <div style="text-align: center;">
+                    <h3 style="margin-bottom: 20px; color: var(--accent-light);">Zoom View - Click to Pick Color</h3>
+                    <canvas id="modalCanvas"></canvas>
+                    <div id="colorSampler" class="color-sampler"></div>
+                    <div style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 20px;">
+                        <div class="color-label">
+                            <div class="color-preview" id="modalColorPreview" style="background-color: #00ff00"></div>
+                            <span>Selected Color:</span>
+                        </div>
+                        <div class="color-hex" id="modalColorHex">#00FF00</div>
+                        <button class="btn-secondary" id="useFromModalBtn" style="padding: 10px 20px;">
+                            <i class="fas fa-check"></i> Use This Color
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Advanced Emoji Editor &copy; <span id="currentYear"></span> | Bulk processing with ZIP download | Created with <i class="fas fa-heart" style="color: var(--danger)"></i></p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM elements
+        const imageUpload = document.getElementById('imageUpload');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileList = document.getElementById('fileList');
+        const fileItems = document.getElementById('fileItems');
+        const fileCount = document.getElementById('fileCount');
+        const emojiCanvas = document.getElementById('emojiCanvas');
+        const canvasContext = emojiCanvas.getContext('2d', { willReadFrequently: true });
+        const placeholder = document.getElementById('placeholder');
+        const previewDisplay = document.getElementById('previewDisplay');
+        
+        // Color pickers and previews
+        const targetColorPicker = document.getElementById('targetColorPicker');
+        const targetColorPreview = document.getElementById('targetColorPreview');
+        const targetColorHex = document.getElementById('targetColorHex');
+        const replacementColorPicker = document.getElementById('replacementColorPicker');
+        const replacementColorPreview = document.getElementById('replacementColorPreview');
+        const replacementColorHex = document.getElementById('replacementColorHex');
+        const selectedColorPreview = document.getElementById('selectedColorPreview');
+        const selectedColorHex = document.getElementById('selectedColorHex');
+        
+        // Sliders and values
+        const toleranceSlider = document.getElementById('toleranceSlider');
+        const toleranceValue = document.getElementById('toleranceValue');
+        const blendSlider = document.getElementById('blendSlider');
+        const blendValue = document.getElementById('blendValue');
+        
+        // Buttons
+        const applyColorBtn = document.getElementById('applyColorBtn');
+        const applyAllBtn = document.getElementById('applyAllBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadCount = document.getElementById('downloadCount');
+        const pickColorBtn = document.getElementById('pickColorBtn');
+        const randomColorBtn = document.getElementById('randomColorBtn');
+        const useAsTargetBtn = document.getElementById('useAsTargetBtn');
+        
+        // Preview navigation
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const currentIndex = document.getElementById('currentIndex');
+        const totalImages = document.getElementById('totalImages');
+        
+        // Zoom controls
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const zoomLevel = document.getElementById('zoomLevel');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        
+        // Tool controls
+        const toolCards = document.querySelectorAll('.tool-card');
+        const toolControls = document.getElementById('toolControls');
+        const toolLabel = document.getElementById('toolLabel');
+        const toolValue = document.getElementById('toolValue');
+        const toolSlider = document.getElementById('toolSlider');
+        const applyToolBtn = document.getElementById('applyToolBtn');
+        const applyToolAllBtn = document.getElementById('applyToolAllBtn');
+        
+        // Batch processing
+        const batchStatus = document.getElementById('batchStatus');
+        const progressBar = document.getElementById('progressBar');
+        const processedCount = document.getElementById('processedCount');
+        const statusText = document.getElementById('statusText');
+        
+        // Modal elements
+        const zoomModal = document.getElementById('zoomModal');
+        const modalCanvas = document.getElementById('modalCanvas');
+        const modalContext = modalCanvas.getContext('2d', { willReadFrequently: true });
+        const modalClose = document.getElementById('modalClose');
+        const colorSampler = document.getElementById('colorSampler');
+        const modalColorPreview = document.getElementById('modalColorPreview');
+        const modalColorHex = document.getElementById('modalColorHex');
+        const useFromModalBtn = document.getElementById('useFromModalBtn');
+        
+        // Magnifier elements
+        const magnifier = document.getElementById('magnifier');
+        const magnifierCanvas = document.getElementById('magnifierCanvas');
+        const magnifierContext = magnifierCanvas.getContext('2d');
+        const colorPickerCursor = document.getElementById('colorPickerCursor');
+        
+        // State variables
+        let images = []; // Array of {id, name, originalData, currentData, originalImage, currentImage}
+        let currentImageIndex = -1;
+        let zoom = 1;
+        let isColorPicking = false;
+        let activeTool = null;
+        let batchQueue = [];
+        let isProcessingBatch = false;
+        
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Canvas setup
+        emojiCanvas.width = 600;
+        emojiCanvas.height = 600;
+        magnifierCanvas.width = 150;
+        magnifierCanvas.height = 150;
+        
+        // Initialize color pickers
+        updateColorHex(targetColorPicker.value, targetColorHex);
+        updateColorHex(replacementColorPicker.value, replacementColorHex);
+        
+        // Event listeners for color pickers
+        targetColorPicker.addEventListener('input', function() {
+            updateColorPreview(this.value, targetColorPreview);
+            updateColorHex(this.value, targetColorHex);
+        });
+        
+        replacementColorPicker.addEventListener('input', function() {
+            updateColorPreview(this.value, replacementColorPreview);
+            updateColorHex(this.value, replacementColorHex);
+        });
+        
+        // Slider updates
+        toleranceSlider.addEventListener('input', function() {
+            toleranceValue.textContent = `${this.value}%`;
+        });
+        
+        blendSlider.addEventListener('input', function() {
+            blendValue.textContent = `${this.value}%`;
+        });
+        
+        // Tool slider update
+        toolSlider.addEventListener('input', function() {
+            toolValue.textContent = `${this.value}%`;
+        });
+        
+        // Upload area click event
+        uploadArea.addEventListener('click', () => {
+            imageUpload.click();
+        });
+        
+        // Handle drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('active');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('active');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+            
+            if (e.dataTransfer.files.length) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+        
+        // Handle file selection
+        imageUpload.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFiles(e.target.files);
+            }
+        });
+        
+        // Handle files function
+        function handleFiles(files) {
+            const validFiles = Array.from(files).filter(file => 
+                file.type.startsWith('image/')
+            );
+            
+            if (validFiles.length === 0) {
+                alert('Please upload image files only (PNG, JPG, SVG, etc.)');
+                return;
+            }
+            
+            // Process each file
+            validFiles.forEach(file => {
+                addImageFile(file);
+            });
+            
+            // Update file count
+            updateFileCount();
+        }
+        
+        // Add image file to the list
+        function addImageFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const img = new Image();
+                
+                img.onload = function() {
+                    const imageId = Date.now() + Math.random();
+                    const imageData = event.target.result;
+                    
+                    images.push({
+                        id: imageId,
+                        name: file.name,
+                        size: formatFileSize(file.size),
+                        originalData: imageData,
+                        currentData: imageData,
+                        originalImage: img,
+                        currentImage: img
+                    });
+                    
+                    // Update file list UI
+                    addFileToList(file.name, imageId, formatFileSize(file.size));
+                    
+                    // If this is the first image, display it
+                    if (images.length === 1) {
+                        currentImageIndex = 0;
+                        displayCurrentImage();
+                        placeholder.style.display = 'none';
+                    }
+                    
+                    // Update counters
+                    updateImageCounters();
+                    updateDownloadCount();
+                };
+                
+                img.src = event.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Add file to the list UI
+        function addFileToList(fileName, fileId, fileSize) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.id = `file-${fileId}`;
+            
+            fileItem.innerHTML = `
+                <div class="file-icon">
+                    <i class="fas fa-image"></i>
+                </div>
+                <div class="file-name" title="${fileName}">${fileName}</div>
+                <div class="file-size">${fileSize}</div>
+                <button class="file-remove" data-id="${fileId}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            fileItems.appendChild(fileItem);
+            
+            // Add remove event listener
+            const removeBtn = fileItem.querySelector('.file-remove');
+            removeBtn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                removeImage(id);
+            });
+            
+            // Click on file item to select it
+            fileItem.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('file-remove')) {
+                    const id = this.id.replace('file-', '');
+                    selectImageById(id);
+                }
+            });
+        }
+        
+        // Remove image from list
+        function removeImage(id) {
+            const index = images.findIndex(img => img.id === id);
+            
+            if (index !== -1) {
+                images.splice(index, 1);
+                
+                // Remove from UI
+                const fileElement = document.getElementById(`file-${id}`);
+                if (fileElement) {
+                    fileElement.remove();
+                }
+                
+                // Update current index if needed
+                if (images.length === 0) {
+                    currentImageIndex = -1;
+                    placeholder.style.display = 'block';
+                    clearCanvas();
+                } else if (currentImageIndex >= images.length) {
+                    currentImageIndex = images.length - 1;
+                    displayCurrentImage();
+                } else if (currentImageIndex === index) {
+                    displayCurrentImage();
+                }
+                
+                // Update counters
+                updateImageCounters();
+                updateFileCount();
+                updateDownloadCount();
+            }
+        }
+        
+        // Select image by ID
+        function selectImageById(id) {
+            const index = images.findIndex(img => img.id === id);
+            
+            if (index !== -1) {
+                currentImageIndex = index;
+                displayCurrentImage();
+                updateImageCounters();
+            }
+        }
+        
+        // Update file count display
+        function updateFileCount() {
+            const count = images.length;
+            fileCount.textContent = `${count} file${count !== 1 ? 's' : ''}`;
+            fileList.style.display = count > 0 ? 'block' : 'none';
+        }
+        
+        // Update image counters
+        function updateImageCounters() {
+            currentIndex.textContent = currentImageIndex + 1;
+            totalImages.textContent = images.length;
+            
+            // Enable/disable navigation buttons
+            prevBtn.disabled = currentImageIndex <= 0;
+            nextBtn.disabled = currentImageIndex >= images.length - 1;
+        }
+        
+        // Update download count
+        function updateDownloadCount() {
+            const count = images.length;
+            downloadCount.textContent = count;
+            downloadBtn.disabled = count === 0;
+        }
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Display current image
+        function displayCurrentImage() {
+            if (currentImageIndex < 0 || currentImageIndex >= images.length) {
+                clearCanvas();
+                return;
+            }
+            
+            const imageData = images[currentImageIndex].currentImage;
+            drawImageOnCanvas(imageData, emojiCanvas, canvasContext);
+            
+            // Update preview display style
+            previewDisplay.style.justifyContent = 'center';
+            previewDisplay.style.alignItems = 'center';
+        }
+        
+        // Clear canvas
+        function clearCanvas() {
+            canvasContext.clearRect(0, 0, emojiCanvas.width, emojiCanvas.height);
+        }
+        
+        // Draw image on canvas
+        function drawImageOnCanvas(image, canvas, context) {
+            const maxWidth = canvas.width;
+            const maxHeight = canvas.height;
+            let width = image.width;
+            let height = image.height;
+            
+            // Calculate dimensions to fit canvas
+            if (width > maxWidth) {
+                height = (maxWidth / width) * height;
+                width = maxWidth;
+            }
+            
+            if (height > maxHeight) {
+                width = (maxHeight / height) * width;
+                height = maxHeight;
+            }
+            
+            // Clear canvas and draw the image
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+        }
+        
+        // Update color preview
+        function updateColorPreview(color, previewElement) {
+            previewElement.style.backgroundColor = color;
+        }
+        
+        // Update color hex display
+        function updateColorHex(color, hexElement) {
+            hexElement.textContent = color.toUpperCase();
+        }
+        
+        // RGB to Hex conversion
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        
+        // Hex to RGB conversion
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+        
+        // Color distance calculation
+        function colorDistance(r1, g1, b1, r2, g2, b2) {
+            return Math.sqrt(
+                Math.pow(r2 - r1, 2) + 
+                Math.pow(g2 - g1, 2) + 
+                Math.pow(b2 - b1, 2)
+            );
+        }
+        
+        // Apply color replacement to a single image
+        function applyColorReplacement(imageData, targetColor, replacementColor, tolerance, blendStrength) {
+            return new Promise((resolve) => {
+                // Create a temporary canvas
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Set dimensions to match original image
+                tempCanvas.width = imageData.width;
+                tempCanvas.height = imageData.height;
+                
+                // Draw the image
+                tempCtx.drawImage(imageData, 0, 0);
+                
+                // Get image data
+                const imageDataObj = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                const data = imageDataObj.data;
+                
+                // Convert tolerance to distance (max distance is ~442)
+                const toleranceDistance = tolerance / 100 * 442;
+                
+                // Process each pixel
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const a = data[i + 3];
+                    
+                    // Skip transparent pixels
+                    if (a === 0) continue;
+                    
+                    // Calculate color distance
+                    const distance = colorDistance(
+                        r, g, b, 
+                        targetColor.r, targetColor.g, targetColor.b
+                    );
+                    
+                    // If within tolerance, replace the color
+                    if (distance <= toleranceDistance) {
+                        // Calculate blending ratio
+                        const blendRatio = blendStrength / 100 * (1 - distance / toleranceDistance);
+                        
+                        // Apply blended color
+                        data[i] = r + (replacementColor.r - r) * blendRatio;
+                        data[i + 1] = g + (replacementColor.g - g) * blendRatio;
+                        data[i + 2] = b + (replacementColor.b - b) * blendRatio;
+                    }
+                }
+                
+                // Put the modified image data back
+                tempCtx.putImageData(imageDataObj, 0, 0);
+                
+                // Create new image from canvas
+                const newImage = new Image();
+                newImage.onload = function() {
+                    resolve(newImage);
+                };
+                newImage.src = tempCanvas.toDataURL();
+            });
+        }
+        
+        // Apply color to current image
+        applyColorBtn.addEventListener('click', async () => {
+            if (currentImageIndex < 0 || currentImageIndex >= images.length) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            // Get color values
+            const targetColor = hexToRgb(targetColorPicker.value);
+            const replacementColor = hexToRgb(replacementColorPicker.value);
+            
+            // Get slider values
+            const tolerance = parseInt(toleranceSlider.value);
+            const blendStrength = parseInt(blendSlider.value);
+            
+            // Apply color replacement
+            const currentImage = images[currentImageIndex];
+            const newImage = await applyColorReplacement(
+                currentImage.currentImage, 
+                targetColor, 
+                replacementColor, 
+                tolerance, 
+                blendStrength
+            );
+            
+            // Update current image
+            currentImage.currentImage = newImage;
+            currentImage.currentData = newImage.src;
+            
+            // Display the updated image
+            displayCurrentImage();
+        });
+        
+        // Apply color to all images
+        applyAllBtn.addEventListener('click', async () => {
+            if (images.length === 0) {
+                alert('Please upload images first!');
+                return;
+            }
+            
+            // Show batch processing status
+            batchStatus.classList.add('active');
+            progressBar.style.width = '0%';
+            processedCount.textContent = `0/${images.length}`;
+            statusText.textContent = 'Processing images...';
+            
+            // Get color values
+            const targetColor = hexToRgb(targetColorPicker.value);
+            const replacementColor = hexToRgb(replacementColorPicker.value);
+            
+            // Get slider values
+            const tolerance = parseInt(toleranceSlider.value);
+            const blendStrength = parseInt(blendSlider.value);
+            
+            // Process each image
+            for (let i = 0; i < images.length; i++) {
+                const image = images[i];
+                
+                // Apply color replacement
+                const newImage = await applyColorReplacement(
+                    image.originalImage, 
+                    targetColor, 
+                    replacementColor, 
+                    tolerance, 
+                    blendStrength
+                );
+                
+                // Update image
+                image.currentImage = newImage;
+                image.currentData = newImage.src;
+                
+                // Update progress
+                const progress = ((i + 1) / images.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                processedCount.textContent = `${i + 1}/${images.length}`;
+                
+                // If this is the current image, update display
+                if (i === currentImageIndex) {
+                    displayCurrentImage();
+                }
+            }
+            
+            // Update status
+            statusText.textContent = 'Processing complete!';
+            
+            // Hide batch status after a delay
+            setTimeout(() => {
+                batchStatus.classList.remove('active');
+            }, 2000);
+        });
+        
+        // Reset current image
+        resetBtn.addEventListener('click', () => {
+            if (currentImageIndex < 0 || currentImageIndex >= images.length) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            const currentImage = images[currentImageIndex];
+            currentImage.currentImage = currentImage.originalImage;
+            currentImage.currentData = currentImage.originalData;
+            
+            displayCurrentImage();
+        });
+        
+        // Reset all images
+        resetAllBtn.addEventListener('click', () => {
+            if (images.length === 0) {
+                alert('No images to reset!');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to reset all images to their original state?')) {
+                return;
+            }
+            
+            images.forEach(image => {
+                image.currentImage = image.originalImage;
+                image.currentData = image.originalData;
+            });
+            
+            if (currentImageIndex >= 0) {
+                displayCurrentImage();
+            }
+        });
+        
+        // Navigation buttons
+        prevBtn.addEventListener('click', () => {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                displayCurrentImage();
+                updateImageCounters();
+            }
+        });
+        
+        nextBtn.addEventListener('click', () => {
+            if (currentImageIndex < images.length - 1) {
+                currentImageIndex++;
+                displayCurrentImage();
+                updateImageCounters();
+            }
+        });
+        
+        // Zoom controls
+        zoomInBtn.addEventListener('click', () => {
+            zoom = Math.min(zoom + 0.25, 3);
+            updateZoom();
+        });
+        
+        zoomOutBtn.addEventListener('click', () => {
+            zoom = Math.max(zoom - 0.25, 0.5);
+            updateZoom();
+        });
+        
+        function updateZoom() {
+            zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+            if (currentImageIndex >= 0 && currentImageIndex < images.length) {
+                const imageData = images[currentImageIndex].currentImage;
+                drawImageOnCanvasWithZoom(imageData, emojiCanvas, canvasContext, zoom);
+            }
+        }
+        
+        // Draw image with zoom
+        function drawImageOnCanvasWithZoom(image, canvas, context, zoomLevel) {
+            const maxWidth = canvas.width;
+            const maxHeight = canvas.height;
+            let width = image.width * zoomLevel;
+            let height = image.height * zoomLevel;
+            
+            // Calculate dimensions to fit canvas
+            if (width > maxWidth) {
+                height = (maxWidth / width) * height;
+                width = maxWidth;
+            }
+            
+            if (height > maxHeight) {
+                width = (maxHeight / height) * width;
+                height = maxHeight;
+            }
+            
+            // Clear canvas and draw the image
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+        }
+        
+        // Fullscreen modal
+        fullscreenBtn.addEventListener('click', () => {
+            if (currentImageIndex < 0 || currentImageIndex >= images.length) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            openZoomModal();
+        });
+        
+        // Open zoom modal
+        function openZoomModal() {
+            const imageData = images[currentImageIndex].currentImage;
+            
+            // Set modal canvas dimensions
+            modalCanvas.width = imageData.width;
+            modalCanvas.height = imageData.height;
+            
+            // Draw image on modal canvas
+            modalContext.drawImage(imageData, 0, 0);
+            
+            // Show modal
+            zoomModal.style.display = 'flex';
+            
+            // Set up color picking in modal
+            setupModalColorPicking();
+        }
+        
+        // Setup color picking in modal
+        function setupModalColorPicking() {
+            let isModalPicking = false;
+            
+            modalCanvas.addEventListener('mousemove', (e) => {
+                if (!isModalPicking) return;
+                
+                const rect = modalCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Update color sampler position
+                colorSampler.style.left = `${e.clientX - 15}px`;
+                colorSampler.style.top = `${e.clientY - 15}px`;
+                
+                // Get pixel color
+                const pixelData = modalContext.getImageData(x, y, 1, 1).data;
+                const hexColor = rgbToHex(pixelData[0], pixelData[1], pixelData[2]);
+                
+                // Update color display
+                modalColorPreview.style.backgroundColor = hexColor;
+                modalColorHex.textContent = hexColor.toUpperCase();
+            });
+            
+            modalCanvas.addEventListener('click', (e) => {
+                const rect = modalCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Get pixel color
+                const pixelData = modalContext.getImageData(x, y, 1, 1).data;
+                const hexColor = rgbToHex(pixelData[0], pixelData[1], pixelData[2]);
+                
+                // Update color display
+                modalColorPreview.style.backgroundColor = hexColor;
+                modalColorHex.textContent = hexColor.toUpperCase();
+                
+                // Enable color sampler
+                isModalPicking = true;
+                colorSampler.style.display = 'block';
+                colorSampler.style.left = `${e.clientX - 15}px`;
+                colorSampler.style.top = `${e.clientY - 15}px`;
+            });
+            
+            // Use color from modal
+            useFromModalBtn.addEventListener('click', () => {
+                const color = modalColorHex.textContent;
+                targetColorPicker.value = color;
+                updateColorPreview(color, targetColorPreview);
+                updateColorHex(color, targetColorHex);
+                zoomModal.style.display = 'none';
+                isModalPicking = false;
+                colorSampler.style.display = 'none';
+            });
+            
+            // Close modal
+            modalClose.addEventListener('click', () => {
+                zoomModal.style.display = 'none';
+                isModalPicking = false;
+                colorSampler.style.display = 'none';
+            });
+            
+            // Close modal on background click
+            zoomModal.addEventListener('click', (e) => {
+                if (e.target === zoomModal) {
+                    zoomModal.style.display = 'none';
+                    isModalPicking = false;
+                    colorSampler.style.display = 'none';
+                }
+            });
+        }
+        
+        // Color picker from image
+        pickColorBtn.addEventListener('click', () => {
+            isColorPicking = !isColorPicking;
+            
+            if (isColorPicking) {
+                pickColorBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+                pickColorBtn.style.backgroundColor = 'var(--danger)';
+                
+                // Enable color picking on canvas
+                emojiCanvas.style.cursor = 'crosshair';
+                colorPickerCursor.style.display = 'block';
+                
+                // Set up mouse move for magnifier
+                previewDisplay.addEventListener('mousemove', handleColorPickMove);
+                previewDisplay.addEventListener('click', handleColorPickClick);
+            } else {
+                pickColorBtn.innerHTML = '<i class="fas fa-eyedropper"></i> Pick';
+                pickColorBtn.style.backgroundColor = '';
+                
+                // Disable color picking
+                emojiCanvas.style.cursor = 'default';
+                colorPickerCursor.style.display = 'none';
+                magnifier.style.display = 'none';
+                
+                // Remove event listeners
+                previewDisplay.removeEventListener('mousemove', handleColorPickMove);
+                previewDisplay.removeEventListener('click', handleColorPickClick);
+            }
+        });
+        
+        // Handle color pick mouse movement
+        function handleColorPickMove(e) {
+            const rect = emojiCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Update cursor position
+            colorPickerCursor.style.left = `${e.clientX - 10}px`;
+            colorPickerCursor.style.top = `${e.clientY - 10}px`;
+            
+            // Show magnifier
+            magnifier.style.display = 'block';
+            magnifier.style.left = `${e.clientX + 20}px`;
+            magnifier.style.top = `${e.clientY - 75}px`;
+            
+            // Calculate the position on the actual image
+            const image = images[currentImageIndex].currentImage;
+            const canvasWidth = emojiCanvas.width;
+            const canvasHeight = emojiCanvas.height;
+            const imageWidth = image.width * zoom;
+            const imageHeight = image.height * zoom;
+            const offsetX = (canvasWidth - imageWidth) / 2;
+            const offsetY = (canvasHeight - imageHeight) / 2;
+            
+            // Check if cursor is over the image
+            if (x >= offsetX && x <= offsetX + imageWidth && 
+                y >= offsetY && y <= offsetY + imageHeight) {
+                
+                // Calculate position in original image
+                const originalX = (x - offsetX) / zoom;
+                const originalY = (y - offsetY) / zoom;
+                
+                // Get pixel color from original image
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = image.width;
+                tempCanvas.height = image.height;
+                tempCtx.drawImage(image, 0, 0);
+                
+                const pixelData = tempCtx.getImageData(originalX, originalY, 1, 1).data;
+                const hexColor = rgbToHex(pixelData[0], pixelData[1], pixelData[2]);
+                
+                // Update selected color display
+                selectedColorPreview.style.backgroundColor = hexColor;
+                selectedColorHex.textContent = hexColor.toUpperCase();
+                
+                // Draw magnified view
+                const magnifierSize = 75;
+                const magnifierZoom = 4;
+                
+                magnifierContext.clearRect(0, 0, magnifierCanvas.width, magnifierCanvas.height);
+                magnifierContext.drawImage(
+                    tempCanvas,
+                    Math.max(0, originalX - magnifierSize / magnifierZoom / 2),
+                    Math.max(0, originalY - magnifierSize / magnifierZoom / 2),
+                    magnifierSize / magnifierZoom,
+                    magnifierSize / magnifierZoom,
+                    0, 0,
+                    magnifierCanvas.width,
+                    magnifierCanvas.height
+                );
+                
+                // Draw crosshair on magnifier
+                magnifierContext.strokeStyle = '#fff';
+                magnifierContext.lineWidth = 1;
+                magnifierContext.beginPath();
+                magnifierContext.moveTo(magnifierCanvas.width / 2, 0);
+                magnifierContext.lineTo(magnifierCanvas.width / 2, magnifierCanvas.height);
+                magnifierContext.moveTo(0, magnifierCanvas.height / 2);
+                magnifierContext.lineTo(magnifierCanvas.width, magnifierCanvas.height / 2);
+                magnifierContext.stroke();
+            }
+        }
+        
+        // Handle color pick click
+        function handleColorPickClick(e) {
+            const rect = emojiCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Calculate the position on the actual image
+            const image = images[currentImageIndex].currentImage;
+            const canvasWidth = emojiCanvas.width;
+            const canvasHeight = emojiCanvas.height;
+            const imageWidth = image.width * zoom;
+            const imageHeight = image.height * zoom;
+            const offsetX = (canvasWidth - imageWidth) / 2;
+            const offsetY = (canvasHeight - imageHeight) / 2;
+            
+            // Check if click is over the image
+            if (x >= offsetX && x <= offsetX + imageWidth && 
+                y >= offsetY && y <= offsetY + imageHeight) {
+                
+                // Use the selected color as target color
+                const color = selectedColorHex.textContent;
+                targetColorPicker.value = color;
+                updateColorPreview(color, targetColorPreview);
+                updateColorHex(color, targetColorHex);
+                
+                // Turn off color picking
+                pickColorBtn.click();
+            }
+        }
+        
+        // Use selected color as target
+        useAsTargetBtn.addEventListener('click', () => {
+            const color = selectedColorHex.textContent;
+            targetColorPicker.value = color;
+            updateColorPreview(color, targetColorPreview);
+            updateColorHex(color, targetColorHex);
+        });
+        
+        // Random color button
+        randomColorBtn.addEventListener('click', () => {
+            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+            replacementColorPicker.value = randomColor;
+            updateColorPreview(randomColor, replacementColorPreview);
+            updateColorHex(randomColor, replacementColorHex);
+        });
+        
+        // Tool selection
+        toolCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active class from all cards
+                toolCards.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked card
+                card.classList.add('active');
+                
+                // Show tool controls
+                toolControls.style.display = 'block';
+                
+                // Set active tool
+                activeTool = card.id.replace('tool', '').toLowerCase();
+                
+                // Update tool controls based on selected tool
+                updateToolControls();
+            });
+        });
+        
+        // Update tool controls based on active tool
+        function updateToolControls() {
+            switch (activeTool) {
+                case 'brightness':
+                    toolLabel.textContent = 'Brightness:';
+                    toolSlider.min = -100;
+                    toolSlider.max = 100;
+                    toolSlider.value = 0;
+                    toolValue.textContent = '0%';
+                    break;
+                case 'contrast':
+                    toolLabel.textContent = 'Contrast:';
+                    toolSlider.min = -100;
+                    toolSlider.max = 100;
+                    toolSlider.value = 0;
+                    toolValue.textContent = '0%';
+                    break;
+                case 'saturation':
+                    toolLabel.textContent = 'Saturation:';
+                    toolSlider.min = -100;
+                    toolSlider.max = 100;
+                    toolSlider.value = 0;
+                    toolValue.textContent = '0%';
+                    break;
+                case 'hue':
+                    toolLabel.textContent = 'Hue Rotate:';
+                    toolSlider.min = -180;
+                    toolSlider.max = 180;
+                    toolSlider.value = 0;
+                    toolValue.textContent = '0°';
+                    break;
+                case 'invert':
+                    toolLabel.textContent = 'Invert:';
+                    toolSlider.min = 0;
+                    toolSlider.max = 100;
+                    toolSlider.value = 0;
+                    toolValue.textContent = '0%';
+                    break;
+                case 'grayscale':
+                    toolLabel.textContent = 'Grayscale:';
+                    toolSlider.min = 0;
+                    toolSlider.max = 100;
+                    toolSlider.value = 0;
+                    toolValue.textContent = '0%';
+                    break;
+                case 'border':
+                    toolLabel.textContent = 'Border Size:';
+                    toolSlider.min = 0;
+                    toolSlider.max = 50;
+                    toolSlider.value = 5;
+                    toolValue.textContent = '5px';
+                    break;
+                case 'shadow':
+                    toolLabel.textContent = 'Shadow Size:';
+                    toolSlider.min = 0;
+                    toolSlider.max = 50;
+                    toolSlider.value = 5;
+                    toolValue.textContent = '5px';
+                    break;
+            }
+        }
+        
+        // Apply tool to current image
+        applyToolBtn.addEventListener('click', () => {
+            if (currentImageIndex < 0 || currentImageIndex >= images.length) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            if (!activeTool) {
+                alert('Please select a tool first!');
+                return;
+            }
+            
+            const currentImage = images[currentImageIndex];
+            const value = parseInt(toolSlider.value);
+            const newImage = applyImageFilter(currentImage.currentImage, activeTool, value);
+            
+            // Update current image
+            currentImage.currentImage = newImage;
+            currentImage.currentData = newImage.src;
+            
+            // Display the updated image
+            displayCurrentImage();
+        });
+        
+        // Apply tool to all images
+        applyToolAllBtn.addEventListener('click', async () => {
+            if (images.length === 0) {
+                alert('Please upload images first!');
+                return;
+            }
+            
+            if (!activeTool) {
+                alert('Please select a tool first!');
+                return;
+            }
+            
+            // Show batch processing status
+            batchStatus.classList.add('active');
+            progressBar.style.width = '0%';
+            processedCount.textContent = `0/${images.length}`;
+            statusText.textContent = 'Applying filter to all images...';
+            
+            const value = parseInt(toolSlider.value);
+            
+            // Process each image
+            for (let i = 0; i < images.length; i++) {
+                const image = images[i];
+                
+                // Apply filter
+                const newImage = applyImageFilter(image.currentImage, activeTool, value);
+                
+                // Update image
+                image.currentImage = newImage;
+                image.currentData = newImage.src;
+                
+                // Update progress
+                const progress = ((i + 1) / images.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                processedCount.textContent = `${i + 1}/${images.length}`;
+                
+                // If this is the current image, update display
+                if (i === currentImageIndex) {
+                    displayCurrentImage();
+                }
+            }
+            
+            // Update status
+            statusText.textContent = 'Processing complete!';
+            
+            // Hide batch status after a delay
+            setTimeout(() => {
+                batchStatus.classList.remove('active');
+            }, 2000);
+        });
+        
+        // Apply image filter
+        function applyImageFilter(image, filter, value) {
+            // Create a temporary canvas
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Set dimensions to match image
+            tempCanvas.width = image.width;
+            tempCanvas.height = image.height;
+            
+            // Draw the image
+            tempCtx.drawImage(image, 0, 0);
+            
+            // Apply filter
+            switch (filter) {
+                case 'brightness':
+                    tempCtx.filter = `brightness(${100 + value}%)`;
+                    break;
+                case 'contrast':
+                    tempCtx.filter = `contrast(${100 + value}%)`;
+                    break;
+                case 'saturation':
+                    tempCtx.filter = `saturate(${100 + value}%)`;
+                    break;
+                case 'hue':
+                    tempCtx.filter = `hue-rotate(${value}deg)`;
+                    break;
+                case 'invert':
+                    tempCtx.filter = `invert(${value}%)`;
+                    break;
+                case 'grayscale':
+                    tempCtx.filter = `grayscale(${value}%)`;
+                    break;
+                case 'border':
+                    // For border, we need to draw it manually
+                    const borderSize = value;
+                    const borderColor = replacementColorPicker.value;
+                    
+                    // Clear canvas
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Draw border
+                    tempCtx.fillStyle = borderColor;
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Draw image on top (with border margin)
+                    tempCtx.drawImage(
+                        image, 
+                        borderSize, 
+                        borderSize, 
+                        tempCanvas.width - borderSize * 2, 
+                        tempCanvas.height - borderSize * 2
+                    );
+                    
+                    // Create new image
+                    const borderedImage = new Image();
+                    borderedImage.src = tempCanvas.toDataURL();
+                    return borderedImage;
+                case 'shadow':
+                    // For shadow, we need to draw it manually
+                    const shadowSize = value;
+                    const shadowColor = 'rgba(0, 0, 0, 0.5)';
+                    
+                    // Create a larger canvas for shadow
+                    const shadowCanvas = document.createElement('canvas');
+                    const shadowCtx = shadowCanvas.getContext('2d');
+                    shadowCanvas.width = image.width + shadowSize * 2;
+                    shadowCanvas.height = image.height + shadowSize * 2;
+                    
+                    // Draw shadow
+                    shadowCtx.shadowColor = shadowColor;
+                    shadowCtx.shadowBlur = shadowSize;
+                    shadowCtx.shadowOffsetX = shadowSize / 2;
+                    shadowCtx.shadowOffsetY = shadowSize / 2;
+                    shadowCtx.drawImage(image, shadowSize, shadowSize, image.width, image.height);
+                    
+                    // Draw image without shadow
+                    shadowCtx.shadowColor = 'transparent';
+                    shadowCtx.drawImage(image, shadowSize, shadowSize, image.width, image.height);
+                    
+                    // Create new image
+                    const shadowImage = new Image();
+                    shadowImage.src = shadowCanvas.toDataURL();
+                    return shadowImage;
+            }
+            
+            // If we applied a CSS filter, redraw the image with the filter
+            if (filter !== 'border' && filter !== 'shadow') {
+                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.drawImage(image, 0, 0);
+            }
+            
+            // Create new image from canvas
+            const newImage = new Image();
+            newImage.src = tempCanvas.toDataURL();
+            return newImage;
+        }
+        
+        // Download all images as ZIP
+        downloadBtn.addEventListener('click', async () => {
+            if (images.length === 0) {
+                alert('No images to download!');
+                return;
+            }
+            
+            // Show batch processing status
+            batchStatus.classList.add('active');
+            progressBar.style.width = '0%';
+            processedCount.textContent = `0/${images.length}`;
+            statusText.textContent = 'Preparing download...';
+            
+            // Create a new JSZip instance
+            const zip = new JSZip();
+            
+            // Create a folder for images
+            const folder = zip.folder("edited-emojis");
+            
+            // Add each image to the zip
+            for (let i = 0; i < images.length; i++) {
+                const image = images[i];
+                
+                // Convert data URL to blob
+                const blob = await fetch(image.currentData).then(res => res.blob());
+                
+                // Add to zip with a clean filename
+                const fileName = image.name.replace(/\.[^/.]+$/, "") + "-edited.png";
+                folder.file(fileName, blob);
+                
+                // Update progress
+                const progress = ((i + 1) / images.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                processedCount.textContent = `${i + 1}/${images.length}`;
+            }
+            
+            // Generate the zip file
+            statusText.textContent = 'Generating ZIP file...';
+            const content = await zip.generateAsync({type: "blob"});
+            
+            // Save the zip file
+            saveAs(content, "edited-emojis.zip");
+            
+            // Update status
+            statusText.textContent = 'Download started!';
+            
+            // Hide batch status after a delay
+            setTimeout(() => {
+                batchStatus.classList.remove('active');
+            }, 2000);
+        });
+        
+        // Initialize with a sample emoji
+        window.addEventListener('load', () => {
+            // Create a sample emoji on canvas
+            const sampleEmoji = new Image();
+            sampleEmoji.onload = function() {
+                // Add sample image to the list
+                images.push({
+                    id: 'sample',
+                    name: 'sample-emoji.svg',
+                    size: '1.2 KB',
+                    originalData: sampleEmoji.src,
+                    currentData: sampleEmoji.src,
+                    originalImage: sampleEmoji,
+                    currentImage: sampleEmoji
+                });
+                
+                // Update file list UI
+                addFileToList('sample-emoji.svg', 'sample', '1.2 KB');
+                
+                // Set as current image
+                currentImageIndex = 0;
+                displayCurrentImage();
+                placeholder.style.display = 'none';
+                
+                // Update counters
+                updateImageCounters();
+                updateFileCount();
+                updateDownloadCount();
+                
+                // Set default target color
+                setTimeout(() => {
+                    // Set a reasonable default color for the sample emoji
+                    targetColorPicker.value = '#FFCC00';
+                    updateColorPreview('#FFCC00', targetColorPreview);
+                    updateColorHex('#FFCC00', targetColorHex);
+                }, 100);
+            };
+            
+            // Create a sample smiley emoji
+            sampleEmoji.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2ZmY2MwMCIvPjxjaXJjbGUgY3g9IjM1IiBjeT0iNDAiIHI9IjUiIGZpbGw9IiMwMDAiLz48Y2lyY2xlIGN4PSI2NSIgY3k9IjQwIiByPSI1IiBmaWxsPSIjMDAwIi8+PHBhdGggZD0iTTM1IDcwIEEyMCAxNSAwIDAgMCA2NSA3MCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjYiIGZpbGw9Im5vbmUiLz48L3N2Zz4=';
+        });
+    </script>
+</body>
+</html>
